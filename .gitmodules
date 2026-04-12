@@ -1,0 +1,6 @@
+[submodule "slipstream/lib/forge-std"]
+	path = slipstream/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "pcs/lib/forge-std"]
+	path = pcs/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
