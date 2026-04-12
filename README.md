@@ -1,6 +1,6 @@
 # Parasitic Liquidity
 
-[![DOI](https://zenodo.org/badge/1208246510.svg)](https://doi.org/10.5281/zenodo.19528399)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19528399.svg)](https://doi.org/10.5281/zenodo.19528399)
 
 Code, fork tests, and supplementary data for:
 
