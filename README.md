@@ -1,5 +1,7 @@
 # Parasitic Liquidity
 
+[![DOI](https://zenodo.org/badge/1208246510.svg)](https://doi.org/10.5281/zenodo.19528399)
+
 Code, fork tests, and supplementary data for:
 
 > Ryan, K.R. (2026). *Parasitic Liquidity: Emission Extraction via Non-Functional Concentrated Liquidity Positions.* SSRN 6510118.
