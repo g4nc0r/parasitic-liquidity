@@ -106,13 +106,11 @@ liquidity mining, gauge design, DeFi security, mechanism design}
 \vspace{12pt}
 
 \begin{abstract}
-This paper identifies and characterises parasitic liquidity, a class of value extraction from concentrated liquidity decentralised exchanges that distribute token emissions to liquidity providers. Emission gauges reward instantaneous staked liquidity. Swap facilitation requires sustained depth. Parasitic liquidity exploits the gap between these two properties. The mechanism operates at the emission layer and is distinct from sandwich attacks, front-running, just-in-time liquidity, and arbitrage.
+We identify parasitic liquidity, a class of emission extraction from concentrated liquidity decentralised exchanges (CL DEXs) that distribute protocol-native tokens to staked positions. It exploits a measurement gap: gauges reward instantaneous staked liquidity at a single tick, whereas swap facilitation requires sustained tradeable depth. The mechanism operates at the emission layer and is distinct from sandwich attacks, front-running, just-in-time liquidity, and arbitrage.
 
-The vulnerability is derived from the public source code of two architecturally distinct emission systems (Slipstream CL gauges and PancakeSwap's \texttt{PancakeV3LmPool}) and verified with Foundry proof-of-concept suites against both implementations on Base mainnet. Both inherit the Synthetix reward accumulator pattern, originally designed for fungible token staking, and apply it unchanged to non-fungible concentrated liquidity positions. A position staked for a single block earns the same reward rate per unit of liquidity as a position staked for any longer duration. No warmup, width minimum, or swap-utilisation condition exists in the reward accrual path of either implementation.
+We derive the vulnerability from the public source of two architecturally distinct emission systems --- Slipstream CL gauges and PancakeSwap's \texttt{PancakeV3LmPool}. Both inherit the Synthetix reward-accumulator pattern, originally designed for fungible staking, and apply the same recurrence to non-fungible concentrated liquidity positions; neither imposes a warmup, minimum width, or utilisation condition on the accrual path. A Foundry proof-of-concept suite, executed against the unmodified contracts on Base mainnet, confirms that rewards accrue from the first block and that reward rate per unit of liquidity is independent of both stake duration and tick width.
 
-Aggregate on-chain analysis reveals that single-tick-width positions rebalancing every block account for a material share of staked liquidity in major pools, reaching 63\% of in-range staked liquidity in one observed WETH/USDC pool.
-
-The paper formalises the profitability conditions, quantifies the dilution imposed on legitimate liquidity providers, and proposes two gauge-level remediation mechanisms verified by fork testing. The vulnerability is present in any CL DEX that distributes emissions proportional to instantaneous staked liquidity without duration, width, or utilisation checks.
+Aggregate on-chain analysis indicates that single-tick-width positions rebalancing every block account for a material share of staked liquidity in major pools, reaching 63\% of in-range staked liquidity in one observed WETH/USDC pool. We formalise the profitability conditions, quantify the dilution imposed on legitimate liquidity providers, and propose two gauge-level remediations, each evaluated against fork-measured baselines. Any CL DEX whose gauge follows this accumulator pattern without duration, width, or utilisation checks appears structurally exposed to the same extraction mechanism.
 \end{abstract}
 
 % ---- 1. Introduction ----
@@ -138,7 +136,7 @@ where $L_i$ is position $i$'s liquidity at the active tick and the sum runs over
 
 \subsection{Existing extraction taxonomy}\label{sec:taxonomy}
 
-Documented MEV extraction classes all operate at the swap execution layer:
+The commonly documented MEV extraction classes listed below operate at the swap execution layer:
 
 \begin{table}[H]
 \centering
@@ -164,7 +162,7 @@ This paper makes four contributions:
 \begin{enumerate}[leftmargin=2em]
 \item Identification of parasitic liquidity as a structurally distinct class of value extraction, with analysis of its origins in the Synthetix reward accumulator (\S\ref{sec:definition}).
 \item Formal characterisation of the profitability conditions (\S\ref{sec:analysis}).
-\item Foundry proof-of-concept suites against two independent protocol implementations on Base mainnet, with aggregate on-chain evidence of exploitation at scale (\S\ref{sec:poc}).
+\item Foundry proof-of-concept suites against two independent protocol implementations on Base mainnet, with aggregate on-chain evidence consistent with use at scale (\S\ref{sec:poc}).
 \item Two remediation mechanisms with analysis of effectiveness and trade-offs (\S\ref{sec:remediation}).
 \end{enumerate}
 
@@ -225,7 +223,7 @@ The earlier protocols in this lineage operated on constant-product (V2) pools wi
 
 The design broke when these protocols adopted concentrated liquidity, grafting the same accumulator onto Uniswap~V3 position mechanics. In~V3, positions are non-fungible and heterogeneous. Two positions with identical liquidity values can provide vastly different tradeable depth depending on their tick range width. The gauge formula rewards both at the same rate per unit of liquidity, regardless of range, duration, or swap utilisation.
 
-PancakeSwap's \texttt{MasterChefV3} arrived at the same vulnerability via parallel evolution, applying the Synthetix accumulator (used since MasterChef~V1) to their Uni~V3 fork. Any protocol that distributes emissions proportional to instantaneous staked liquidity in a concentrated liquidity pool is affected.
+PancakeSwap's \texttt{MasterChefV3} arrived at the same vulnerability via parallel evolution, applying the Synthetix accumulator (used since MasterChef~V1) to their Uni~V3 fork. Any protocol that distributes emissions under this accumulator pattern on a concentrated liquidity pool appears structurally exposed to the same extraction mechanism.
 
 The relevant code pattern in Slipstream-derived gauges:
 
@@ -316,7 +314,7 @@ Each rebalance cycle withdraws and redeploys the full principal, so the operator
 
 \subsection{Fee income versus emission income}\label{sec:feevemission}
 
-A single-tick position minted at the current tick covers one tick spacing for one block. Even if swap volume passes through that tick, the fee capture from a two-second window is negligible relative to the emission income earned in the same period. The Foundry tests in \S\ref{sec:poc} verify this empirically.
+A single-tick position minted at the current tick covers one tick spacing for one block. Even if swap volume passes through that tick, the fee capture from a two-second window is small relative to the emission income earned in the same period. The Foundry tests in \S\ref{sec:poc} measure the emission side of this comparison; the fee side follows from observed pool volume at the relevant fee tier.
 
 \subsection{Dilution of legitimate liquidity providers}\label{sec:dilution}
 
@@ -365,14 +363,14 @@ Both test suites pass against unmodified production contracts. The suites are av
 
 \subsection{Aggregate on-chain evidence}\label{sec:onchain}
 
-On-chain analysis of major CL pools across affected protocols, conducted between March and April 2026:
+On-chain analysis of major CL pools across affected protocols, conducted between March and April 2026. Specific pool identifiers, address-level data, and exact observation windows are omitted from the aggregate figures below.
 
 \begin{itemize}[leftmargin=2em]
-\item In the largest WETH/USDC CL100 pool on one protocol, single-tick-width positions account for 63.4\% of in-range staked liquidity.
-\item Across 50 sampled blocks on this pool, 46 (92\%) contained zero \texttt{Swap} events whilst single-tick positions remained staked. Emissions accrued in blocks where no swap was facilitated.
-\item On a second protocol, single-tick positions in the four highest-emission pools capture an estimated 18.1\% of chain-level emission token distribution.
-\item Across observed protocols and chains, positions matching the parasitic pattern are present in over 20 gauged pools simultaneously.
-\item The strategy has been continuously active for months with no observed downtime.
+\item In the largest WETH/USDC CL100 pool on one observed protocol, single-tick-width positions account for 63.4\% of in-range staked liquidity.
+\item Across 50 sampled blocks on this pool, 46 (92\%) contained zero \texttt{Swap} events whilst single-tick positions remained staked; emissions accrued in those blocks.
+\item On a second protocol, single-tick positions in the four highest-emission pools capture an estimated 18.1\% of that protocol's emissions on the chain in question.
+\item Across the observed protocols and chains, positions matching this pattern are simultaneously present in more than 20 gauged pools.
+\item Positions matching this pattern have been continuously present in the observed pools over the observation window.
 \end{itemize}
 
 All figures are derived from public on-chain data.
@@ -405,7 +403,7 @@ require(tickUpper - tickLower >= minWidth, "Position too narrow");
 \end{verbatim}\end{minipage}\end{center}
 
 
-Fork testing against an active Slipstream gauge confirms that the capital efficiency penalty scales faster than linearly with enforced width. At \texttt{minWidth} = $2\times$ tick spacing, a parasitic operator needs $2\times$ more capital for the same liquidity. At $5\times$ tick spacing, the requirement rises to $6\times$. At $10\times$, $15\times$.
+Applied to fork-measured pool state, the capital-efficiency penalty scales faster than linearly with enforced width. At \texttt{minWidth} = $2\times$ tick spacing, a parasitic operator needs $2\times$ more capital for the same liquidity. At $5\times$ tick spacing, the requirement rises to $6\times$. At $10\times$, $15\times$.
 
 \textbf{Fix 2: Reward warmup period.} A linear ramp on reward accrual after each deposit:
 
@@ -425,7 +423,7 @@ More comprehensive approaches incorporating position quality into the emission s
 
 \subsection{Combined effect}\label{sec:combined}
 
-Fork testing both fixes together against an active Slipstream gauge produces the following results:
+Applying the two fixes analytically to fork-measured reward accrual yields the following effective-yield ratios:
 
 \begin{table}[H]
 \centering
@@ -445,14 +443,14 @@ The combined effect reduces parasitic extraction to less than 1\% of its unmitig
 % ---- 6. Affected Systems ----
 \section{Affected systems}\label{sec:affected}
 
-The vulnerability is present in any CL DEX that distributes emissions proportional to instantaneous staked liquidity without duration, width, or utilisation checks. The proof-of-concept suites in \S\ref{sec:foundry} verify this against two architecturally distinct implementations on Base. The capital requirement is a single position plus gas reserves, deployable from any address.
+Any CL DEX whose gauge uses this accumulator pattern without duration, width, or utilisation checks appears structurally exposed to the same extraction mechanism. The proof-of-concept suites in \S\ref{sec:foundry} verify the underlying properties against two architecturally distinct implementations on Base. The capital requirement is a single position plus gas reserves, deployable from any address.
 
 % ---- 7. Discussion ----
 \section{Discussion}\label{sec:discussion}
 
 \subsection{Parasitic liquidity as a distinct extraction class}\label{sec:distinct}
 
-Parasitic liquidity differs from frontrunning, sandwich attacks, and other documented extraction techniques in three respects. First, it operates at the emission distribution layer rather than the swap execution layer. Second, it is invisible to standard DEX analytics. Pool TVL, volume, and fee metrics are unaffected. Only per-position emission breakdowns reveal the dilution. Third, it does not affect execution quality for traders. The cost falls entirely on legitimate LPs through reduced emission share.
+Parasitic liquidity differs from frontrunning, sandwich attacks, and other documented extraction techniques in three respects. First, it operates at the emission distribution layer rather than the swap execution layer. Second, it does not surface in standard DEX metrics: pool TVL, volume, and fee figures are unaffected. Detection requires per-position analysis of width, rebalance frequency, and swap co-occurrence. Third, the direct cost falls on legitimate LPs through reduced emission share; execution quality for traders is affected only through any secondary LP withdrawal this dilution induces.
 
 Individual rebalance transactions are indistinguishable from legitimate LP adjustments. The aggregate pattern of per-block frequency, single-tick width, and zero-swap co-occurrence is required to identify the extraction.
 
@@ -473,11 +471,11 @@ The findings in this paper were disclosed to affected protocols via Immunefi pri
 % ---- 8. Conclusion ----
 \section{Conclusion}\label{sec:conclusion}
 
-Parasitic liquidity is a structural vulnerability in the emission distribution layer of concentrated liquidity DEXs. Gauges measure instantaneous liquidity. Protocols intend to incentivise sustained swap depth. The gap between these two quantities is exploitable.
+Parasitic liquidity is a structural vulnerability in the emission distribution layer of CL DEXs whose gauges use the Synthetix-style instantaneous-stake accumulator. Gauges measure instantaneous liquidity. Protocols intend to incentivise sustained swap depth. The gap between these two quantities is exploitable.
 
-The vulnerability is demonstrated against unmodified mainnet contracts. Aggregate on-chain evidence confirms exploitation at scale across multiple protocols and chains. The strategy is linearly scalable with a low economic floor.
+The vulnerability is demonstrated against unmodified mainnet contracts. Aggregate on-chain evidence shows the pattern in continuous use across the observed pools. The strategy is linearly scalable with a low economic floor.
 
-Remediation requires minimum position widths and reward warmup periods. Absent gauge-level modifications, replication is a matter of time.
+The remediations analysed here are minimum position widths and reward warmup periods; more comprehensive gauge designs are possible and are out of scope. Absent gauge-level modifications, further adoption of the pattern is plausible under the present incentive structure.
 
 % ---- References ----
 \addcontentsline{toc}{section}{References}
