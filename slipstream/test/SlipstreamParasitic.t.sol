@@ -37,7 +37,7 @@ contract ParasiticLiquidityTest is Test {
     int24 tick;
 
     function setUp() public {
-        vm.createSelectFork(vm.envString("BASE_RPC_URL"));
+        vm.createSelectFork(vm.envString("BASE_RPC_URL"), 44_140_000);
         pool  = ISlipstreamCLPool(POOL);
         nfpm  = INonfungiblePositionManager(NFPM);
         gauge = ICLGauge(GAUGE);

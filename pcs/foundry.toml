@@ -6,6 +6,7 @@ solc_version = "0.8.20"
 
 [rpc_endpoints]
 base = "${BASE_RPC_URL}"
+bsc  = "${BSC_RPC_URL}"
 
 [fmt]
 line_length = 100

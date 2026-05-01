@@ -7,10 +7,14 @@
 **/node_modules/
 **/npm-debug.log*
 
-# Editor
+# Editor / IDE / agent
 .vscode/
 .idea/
+.claude/
 *.swp
+
+# Local-only audit + working notes (never committed)
+Working Notes/
 
 # OS
 .DS_Store
@@ -38,3 +42,14 @@ Thumbs.db
 *.synctex.gz
 *.bbl
 *.blg
+
+# Reproduction code and datasets held back pending verification.
+# (pcs/ and slipstream/ are already tracked in HEAD; gitignore here only
+# suppresses NEW files inside them. Existing tracked files in those
+# directories stay where they are; explicit modifications won't be staged
+# as part of paper-only revisions.)
+quickswap/
+ramses/
+shadow/
+scripts/
+citations/

@@ -1,8 +1,10 @@
 # PancakeSwap V3 Parasitic Liquidity PoC
 
-Foundry fork tests demonstrating parasitic liquidity extraction via PancakeSwap's MasterChefV3 on Base. Supplementary material for *Parasitic Liquidity: Emission Extraction via Non-Functional Concentrated Liquidity Positions* (Ryan, 2026).
+Foundry fork tests demonstrating parasitic liquidity extraction via PancakeSwap's MasterChefV3 on two chains: **Base** (has Flashblocks sub-block pre-confirmations) and **BSC** (no Flashblocks, 0.45s native blocks post-Fermi). Supplementary material for *Parasitic Liquidity: Emission Extraction via Non-Functional Concentrated Liquidity Positions* (Ryan, 2026).
 
 ## Tests
+
+### Base (PCSParasitic.t.sol)
 
 | Test | Property | Result |
 |------|----------|--------|
@@ -10,9 +12,21 @@ Foundry fork tests demonstrating parasitic liquidity extraction via PancakeSwap'
 | `test_PCS_WidthIndependence` | Reward/liquidity identical for narrow vs wide | 0 bps difference; narrow gets 14x more reward/dollar |
 | `test_PCS_DurationIndependence` | No warmup period; constant rate from second 1 | 0 bps difference between 4s and 40s stakes |
 
+### BSC (PCSParasiticBSC.t.sol)
+
+BSC has no Flashblocks or sub-block pre-confirmation layer (Flashblocks is deployed only on OP Stack rollups — Base, Unichain, OP Mainnet). Reproducing the three parasitic properties here demonstrates the vulnerability is chain-architecture-independent and cannot be dismissed as a Base/Flashblocks artefact.
+
+| Test | Property | Result |
+|------|----------|--------|
+| `test_PCS_BSC_SingleBlockReward` | Non-zero CAKE from 1 second of staking | 2.78e14 CAKE wei in 1 second |
+| `test_PCS_BSC_WidthIndependence` | Reward/liquidity identical for narrow vs wide | 0 bps difference; narrow gets 13.7x more reward/dollar |
+| `test_PCS_BSC_DurationIndependence` | No warmup period; constant rate from second 1 | 0 bps difference between 2s and 40s stakes (rate = 2.78e14 wei/s in both phases) |
+
 ## Contracts Tested
 
-All contracts are unmodified PancakeSwap V3 mainnet deployments on Base:
+All contracts are unmodified PancakeSwap V3 mainnet deployments.
+
+### Base
 
 | Contract | Address |
 |----------|---------|
@@ -22,13 +36,28 @@ All contracts are unmodified PancakeSwap V3 mainnet deployments on Base:
 | CAKE (Base) | `0x3055913c90Fcc1A6CE9a358911721eEb942013A1` |
 | Test Pool (WETH/USDC 500) | `0xB775272E537cc670C65DC852908aD47015244EaF` |
 
+### BSC
+
+| Contract | Address |
+|----------|---------|
+| MasterChefV3 | `0x556B9306565093C855AEA9AE92A594704c2Cd59e` |
+| NonfungiblePositionManager | `0x46A15B0b27311cedF172AB29E4f4766fbE7F4364` |
+| Test Pool (WBNB/USDT 500) | `0x36696169C63e42cd08ce11f5deeBbCeBae652050` |
+
 ## Reproduce
 
 ```bash
 # Requires Foundry (https://book.getfoundry.sh)
 cd pcs/
-BASE_RPC_URL=<your_base_rpc_url> forge test -vv
+
+# Base tests
+BASE_RPC_URL=<your_base_rpc_url> forge test --match-contract PCSParasiticTest -vv
+
+# BSC tests (refutes the "Flashblocks-specific" framing)
+BSC_RPC_URL=<your_bsc_rpc_url> forge test --match-contract PCSParasiticBSCTest -vv
 ```
+
+Public BSC endpoints (e.g. `https://bsc-dataseed.bnbchain.org`) work; Alchemy/QuickNode BSC endpoints work the same.
 
 ## Key Findings
 

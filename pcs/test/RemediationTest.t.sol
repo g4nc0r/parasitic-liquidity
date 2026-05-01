@@ -74,7 +74,8 @@ contract RemediationTest is Test {
     address attacker;
 
     function setUp() public {
-        vm.createSelectFork(vm.envString("BASE_RPC_URL"));
+        // Pinned to the same Base block as the propositional PoC tests for bit-reproducibility.
+        vm.createSelectFork(vm.envString("BASE_RPC_URL"), 44_140_000);
         AERO = ICLGauge(GAUGE).rewardToken();
         attacker = address(this);
         vm.deal(attacker, 100 ether);
@@ -144,14 +145,25 @@ contract RemediationTest is Test {
         int24[5] memory widths = [int24(1), int24(2), int24(5), int24(10), int24(20)];
         uint128[5] memory liquidities;
 
+        // Symmetric range around the active tick. For odd widths the upper
+        // side is one spacing wider so that the position strictly contains
+        // the active tick. The 1x case is the canonical narrow position
+        // [lower, lower + TICK_SPACING]. Asymmetric placements at width >= 2
+        // (e.g. [lower, lower + 2*TICK_SPACING]) are not realistic for an
+        // operator targeting the active tick, because token1 is the lower-
+        // side bottleneck and unchanged lower bounds give identical L
+        // regardless of how much the upper bound is widened.
         for (uint256 i = 0; i < 5; i++) {
             int24 w = widths[i];
-            int24 tl = lower - ((w / 2) * TICK_SPACING);
-            int24 tu = lower + (((w + 1) / 2) * TICK_SPACING);
-            // Ensure at least w tick spacings wide
-            if (w == 1) { tl = lower; tu = lower + TICK_SPACING; }
-            if (w == 2) { tl = lower; tu = lower + (2 * TICK_SPACING); }
-
+            int24 tl;
+            int24 tu;
+            if (w == 1) {
+                tl = lower;
+                tu = lower + TICK_SPACING;
+            } else {
+                tl = lower - ((w / 2) * TICK_SPACING);
+                tu = lower + (((w + 1) / 2) * TICK_SPACING);
+            }
             (, uint128 liq) = _mintPosition(tl, tu, capital0, capital1);
             liquidities[i] = liq;
         }

@@ -1,95 +1,72 @@
+<p align="center">
+  <img src=".github/banner.jpg" alt="Parasitic Liquidity: emission extraction via non-functional concentrated liquidity positions" width="100%" />
+</p>
+
 # Parasitic Liquidity
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19528399.svg)](https://doi.org/10.5281/zenodo.19528399)
+Paper sources for *Parasitic Liquidity: Emission Extraction via Non-Functional Concentrated Liquidity Positions* (K. R. Ryan, 2026).
 
-Code, fork tests, and supplementary data for:
+*Parasitic liquidity* is an emission extraction strategy on concentrated liquidity DEXs whose gauges use the Synthetix instantaneous-stake accumulator. Three propositions characterise the mechanism: gauge accrual is memoryless in stake duration, independent of position width per unit of liquidity, and uncoupled from utilisation. Foundry suites against unmodified mainnet contracts on Base verify all three properties on Slipstream gauges and PancakeSwap MasterChefV3. The paper supports the Foundry results with a point-in-time and longitudinal on-chain audit, a 31-day cross-chain affordability sample, and an analytical evaluation of two-gauge level remediations.
 
-> Ryan, K.R. (2026). *Parasitic Liquidity: Emission Extraction via Non-Functional Concentrated Liquidity Positions.* SSRN 6510118.
+| | |
+|---|---|
+| **Author** | K. R. Ryan, independent researcher |
+| **Contact** | [gancor.xyz](https://gancor.xyz) · ORCID [0009-0004-6295-7040](https://orcid.org/0009-0004-6295-7040) |
+| **Paper DOI** | [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19528399.svg)](https://doi.org/10.5281/zenodo.19528399) |
+| **SSRN** | [6510118](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6510118) |
+| **Licence** | paper PDF and LaTeX source © K. R. Ryan, all rights reserved; companion code (when released) MIT |
 
-**Paper:** [`parasitic-liquidity.pdf`](./parasitic-liquidity.pdf) | [SSRN](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6510118)
+**Status.** *This is a working paper.* The PDF in `paper/` is a revised preprint of the SSRN entry above and is not peer-reviewed. The reproduction code (Foundry suites for Slipstream and PancakeSwap MasterChefV3, and the cross-chain affordability and longitudinal-scan pipelines) is held back pending verification and will be released in a subsequent revision under MIT alongside a Zenodo dataset deposit.
 
-## Overview
+## Companion papers
 
-This paper demonstrates that concentrated liquidity (CL) gauges in ve(3,3) DEXes (including Aerodrome Slipstream and PancakeSwap V3) distribute emissions proportionally to staked liquidity without accounting for position width, stake duration, or liquidity utilisation. Rational actors exploit this by deploying minimal-width, single-block positions that extract disproportionate rewards while providing negligible trading depth.
+| | Where | Status |
+|---|---|---|
+| The Geometric Siphon (Paper I): Emergent Capital Reallocation in Concentrated Liquidity Portfolios | [SSRN 6374838](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6374838) | Live preprint |
+| The Geometric Siphon II: Directional Properties | [SSRN 6481498](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6481498) | Live preprint |
+| Parasitic Liquidity (this paper) | [SSRN 6510118](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6510118) | Live preprint, revised working paper here |
+| Constructive Gauges: Concentration-Weighted Emission Distribution for CL DEXs | [SSRN 6625980](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6625980) | Live preprint |
 
-## Fork Tests
+The Geometric Siphon papers characterise the geometric residual that arises on LP rebalancing under shared depositor balances. *Parasitic Liquidity* analyses the emission-side analogue, where staked positions accrue gauge rewards without providing tradeable depth. *Constructive Gauges* presents the protocol-side response, replacing nominal liquidity in the gauge formula with a scoring function that conditions emission accrual on duration, width, and tradeable-depth provision.
 
-All tests run against **live Base mainnet state** via Foundry fork mode. No mocks. All tests prove the vulnerability on deployed, unmodified contracts.
+## Citation
 
-### Slipstream (Aerodrome on Base)
-
-```bash
-cd slipstream/
-forge install
-BASE_RPC_URL=<your_base_rpc_url> forge test -vv
+```bibtex
+@techreport{ryan2026parasitic,
+  author      = {Ryan, K. R.},
+  title       = {Parasitic Liquidity: Emission Extraction via
+                 Non-Functional Concentrated Liquidity Positions},
+  institution = {SSRN},
+  number      = {6510118},
+  year        = {2026},
+  url         = {https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6510118}
+}
 ```
 
-| Test | Property Proven |
-|------|-----------------|
-| `test_Proof1_NoWarmup` | 1-block stake earns non-zero AERO |
-| `test_Proof2_WidthIndependence` | Single-tick and ten-tick positions earn identical reward per unit liquidity |
-| `test_Proof3_DurationIndependence` | Reward rate per second per L is constant regardless of duration |
-
-### PancakeSwap V3 (on Base)
-
-```bash
-cd pcs/
-forge install
-BASE_RPC_URL=<your_base_rpc_url> forge test -vv
-```
-
-| Test | Property Proven |
-|------|-----------------|
-| `test_PCS_SingleBlockReward` | Non-zero CAKE from 1 block of staking |
-| `test_PCS_WidthIndependence` | Reward/liquidity identical for narrow vs wide (0 bps difference) |
-| `test_PCS_DurationIndependence` | No warmup period; constant rate from second 1 |
-
-### Remediation Validation
-
-`pcs/test/RemediationTest.t.sol` validates the proposed fix mechanism (minimum stake time + width-weighted rewards).
-
-## Supplementary Materials
-
-| File | Description |
-|------|-------------|
-| `parasitic-liquidity.pdf` | Published paper |
-| `parasitic-liquidity.tex` | LaTeX source |
+A `CITATION.cff` with the same metadata is included at the repository root.
 
 ## Layout
 
 ```
-parasitic-liquidity/
-├── parasitic-liquidity.pdf / .tex
-├── slipstream/              ← Aerodrome fork tests
-│   ├── src/                   Interface shims (ICLGauge, INPM, etc.)
-│   ├── test/                  SlipstreamParasitic.t.sol (3 tests)
-│   ├── foundry.toml / .lock
-│   └── README.md
-└── pcs/                     ← PancakeSwap V3 fork tests
-    ├── test/                  PCSParasitic + RemediationTest + HelperLib
-    ├── FINDINGS.md
-    ├── foundry.toml / .lock
-    └── README.md
+.
+├── paper/
+│   ├── parasitic-liquidity.tex     paper source (xelatex, TeX Gyre Termes)
+│   └── parasitic-liquidity.pdf     compiled PDF
+├── .github/
+│   └── banner.jpg
+├── CITATION.cff
+├── LICENSE
+└── README.md
 ```
 
-## Reproducing
+Reproduction code and datasets will be added in a subsequent revision.
 
-Requires [Foundry](https://book.getfoundry.sh/) and a Base RPC endpoint (e.g. Alchemy, Infura).
+## Building the paper
 
-Fork tests run against live mainnet state. Tests do not pin a block number; qualitative results (non-zero rewards, equal reward/L ratios) hold deterministically regardless of block.
-
-## Citing
-
-```bibtex
-@techreport{ryan2026parasitic,
-  author      = {Ryan, K.R.},
-  title       = {Parasitic Liquidity: Emission Extraction via Non-Functional Concentrated Liquidity Positions},
-  institution = {SSRN},
-  number      = {6510118},
-  year        = {2026}
-}
+```bash
+cd paper
+xelatex parasitic-liquidity.tex
+xelatex parasitic-liquidity.tex   # second pass for cross-references
 ```
 
-## Licence
-
-Code: MIT. Paper: © the author, all rights reserved (canonical at SSRN).
+Requires `xelatex` with `texgyretermes`, `unicode-math`, `pgfplots` (≥ 1.18), `microtype`, `mdframed`, and `placeins`. Two passes resolve the bibliography and cross-references. Output is a single self-contained PDF at `paper/parasitic-liquidity.pdf`.
